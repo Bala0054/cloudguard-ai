@@ -41,15 +41,26 @@ export default function Dashboard({ user, signOut }) {
   const [apiStatus, setApiStatus]   = useState("checking");
   const [costData]                  = useState(mockCostData);
   const [services]                  = useState(mockServices);
-  const [alerts]                    = useState(mockAlerts);
+  const [alerts, setAlerts]         = useState(mockAlerts);
 
-  useEffect(() => {
-    fetch(`${API_URL}/costs`)
-      .then(r => r.json())
-      .then(() => setApiStatus("live"))
-      .catch(() => setApiStatus("demo"));
-  }, []);
-
+useEffect(() => {
+  fetch(`${API_URL}/anomalies`)
+    .then(r => r.json())
+    .then(data => {
+      if (data.anomalies && data.anomalies.length > 0) {
+        const aiAlerts = data.anomalies.map(a => ({
+          id: a.day,
+          type: "AI_ANOMALY",
+          severity: a.severity,
+          message: a.message,
+          time: "just now"
+        }));
+        setAlerts(aiAlerts);
+        setApiStatus("live");
+      }
+    })
+    .catch(() => setApiStatus("demo"));
+}, []);
   const totalCost   = services.reduce((s, r) => s + r.cost, 0).toFixed(2);
   const highAlerts  = alerts.filter(a => a.severity === "HIGH").length;
 
