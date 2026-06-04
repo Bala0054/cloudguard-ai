@@ -46,7 +46,6 @@ export class InfrastructureStack extends cdk.Stack {
       actions: ['ce:GetCostAndUsage'],
       resources: ['*'],
     }));
-
     cloudguardTable.grantReadWriteData(costHandler);
 
     const api = new apigateway.RestApi(this, 'CloudGuardApi', {
@@ -57,18 +56,29 @@ export class InfrastructureStack extends cdk.Stack {
       },
     });
 
+    // Costs endpoint
     const costs = api.root.addResource('costs');
     costs.addMethod('GET', new apigateway.LambdaIntegration(costHandler));
-    // Anomaly Detector Lambda
-const anomalyDetector = new lambda.Function(this, 'AnomalyDetector', {
-  runtime: lambda.Runtime.NODEJS_18_X,
-  handler: 'index.handler',
-  code: lambda.Code.fromAsset('../backend/anomaly-detector'),
-  timeout: cdk.Duration.seconds(30),
-});
 
-const anomalies = api.root.addResource('anomalies');
-anomalies.addMethod('GET', new apigateway.LambdaIntegration(anomalyDetector));
+    // Anomaly Detector Lambda
+    const anomalyDetector = new lambda.Function(this, 'AnomalyDetector', {
+      runtime: lambda.Runtime.NODEJS_18_X,
+      handler: 'index.handler',
+      code: lambda.Code.fromAsset('../backend/anomaly-detector'),
+      timeout: cdk.Duration.seconds(30),
+    });
+    const anomalies = api.root.addResource('anomalies');
+    anomalies.addMethod('GET', new apigateway.LambdaIntegration(anomalyDetector));
+
+    // Security Scanner Lambda
+    const securityScanner = new lambda.Function(this, 'SecurityScanner', {
+      runtime: lambda.Runtime.NODEJS_18_X,
+      handler: 'index.handler',
+      code: lambda.Code.fromAsset('../backend/security-scanner'),
+      timeout: cdk.Duration.seconds(30),
+    });
+    const security = api.root.addResource('security');
+    security.addMethod('GET', new apigateway.LambdaIntegration(securityScanner));
 
     new cdk.CfnOutput(this, 'TableName', { value: cloudguardTable.tableName });
     new cdk.CfnOutput(this, 'UserPoolId', { value: userPool.userPoolId });

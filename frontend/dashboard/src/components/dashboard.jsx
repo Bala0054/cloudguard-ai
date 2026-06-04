@@ -1,12 +1,11 @@
 import { useState, useEffect } from "react";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, BarChart, Bar, Legend
+  Tooltip, ResponsiveContainer, Legend
 } from "recharts";
 
-const API_URL = "https://o2nvgd1ydl.execute-api.ap-south-1.amazonaws.com/prod";
+const API_URL = "/api";
 
-// Mock cost data for demo (real data comes from API)
 const mockCostData = [
   { date: "May 25", cost: 2.4, forecast: 2.8 },
   { date: "May 26", cost: 3.1, forecast: 3.0 },
@@ -22,51 +21,53 @@ const mockCostData = [
 ];
 
 const mockServices = [
-  { service: "EC2",            cost: 14.20, change: "+12%" },
-  { service: "S3",             cost: 3.40,  change: "-3%"  },
-  { service: "Lambda",         cost: 0.02,  change: "+1%"  },
-  { service: "API Gateway",    cost: 1.80,  change: "+8%"  },
-  { service: "DynamoDB",       cost: 0.80,  change: "+2%"  },
-  { service: "CloudFront",     cost: 2.10,  change: "-1%"  },
+  { service: "EC2",         cost: 14.20, change: "+12%" },
+  { service: "S3",          cost: 3.40,  change: "-3%"  },
+  { service: "Lambda",      cost: 0.02,  change: "+1%"  },
+  { service: "API Gateway", cost: 1.80,  change: "+8%"  },
+  { service: "DynamoDB",    cost: 0.80,  change: "+2%"  },
+  { service: "CloudFront",  cost: 2.10,  change: "-1%"  },
 ];
 
 const mockAlerts = [
-  { id: 1, type: "COST_SPIKE",   severity: "HIGH",   message: "EC2 cost increased 38% vs last week",        time: "2h ago"  },
-  { id: 2, type: "ANOMALY",      severity: "MEDIUM", message: "Unusual API calls from ap-southeast-1",       time: "5h ago"  },
-  { id: 3, type: "IDLE_RESOURCE",severity: "LOW",    message: "3 EC2 instances running at <5% CPU for 7d",  time: "1d ago"  },
+  { id: 1, type: "COST_SPIKE",    severity: "HIGH",   message: "EC2 cost increased 38% vs last week",       time: "2h ago" },
+  { id: 2, type: "ANOMALY",       severity: "MEDIUM", message: "Unusual API calls from ap-southeast-1",      time: "5h ago" },
+  { id: 3, type: "IDLE_RESOURCE", severity: "LOW",    message: "3 EC2 instances running at <5% CPU for 7d", time: "1d ago" },
 ];
 
 export default function Dashboard({ user, signOut }) {
-  const [activeTab, setActiveTab]   = useState("overview");
-  const [apiStatus, setApiStatus]   = useState("checking");
-  const [costData]                  = useState(mockCostData);
-  const [services]                  = useState(mockServices);
-  const [alerts, setAlerts]         = useState(mockAlerts);
+  const [activeTab, setActiveTab]       = useState("overview");
+  const [apiStatus, setApiStatus]       = useState("checking");
+  const [costData]                      = useState(mockCostData);
+  const [services]                      = useState(mockServices);
+  const [alerts, setAlerts]             = useState(mockAlerts);
+  const [securityData, setSecurityData] = useState(null);
 
-useEffect(() => {
-  fetch(`${API_URL}/anomalies`)
-    .then(r => r.json())
-    .then(data => {
-      if (data.anomalies && data.anomalies.length > 0) {
-        const aiAlerts = data.anomalies.map(a => ({
-          id: a.day,
-          type: "AI_ANOMALY",
-          severity: a.severity,
-          message: a.message,
-          time: "just now"
-        }));
-        setAlerts(aiAlerts);
-        setApiStatus("live");
-      }
-    })
-    .catch(() => setApiStatus("demo"));
-}, []);
-  const totalCost   = services.reduce((s, r) => s + r.cost, 0).toFixed(2);
-  const highAlerts  = alerts.filter(a => a.severity === "HIGH").length;
+  useEffect(() => {
+    fetch(`${API_URL}/anomalies`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.anomalies && data.anomalies.length > 0) {
+          setAlerts(data.anomalies.map(a => ({
+            id: a.day, type: "AI_ANOMALY",
+            severity: a.severity, message: a.message, time: "just now"
+          })));
+          setApiStatus("live");
+        }
+      })
+      .catch(() => setApiStatus("demo"));
+
+    fetch(`${API_URL}/security`)
+      .then(r => r.json())
+      .then(data => setSecurityData(data))
+      .catch(err => console.error("Security fetch failed:", err));
+  }, []);
+
+  const totalCost  = services.reduce((s, r) => s + r.cost, 0).toFixed(2);
+  const highAlerts = alerts.filter(a => a.severity === "HIGH").length;
 
   return (
     <div className="cg-shell">
-      {/* ── SIDEBAR ── */}
       <aside className="cg-sidebar">
         <div className="cg-logo">🛡️ CloudGuard</div>
         <nav className="cg-nav">
@@ -91,12 +92,15 @@ useEffect(() => {
         </div>
       </aside>
 
-      {/* ── MAIN CONTENT ── */}
       <main className="cg-main">
-        {/* Header */}
         <div className="cg-header">
           <div>
-            <h1 className="cg-title">Dashboard Overview</h1>
+            <h1 className="cg-title">
+              {activeTab === "overview" && "Dashboard Overview"}
+              {activeTab === "costs"    && "Cost Analysis"}
+              {activeTab === "security" && "Security Scanner"}
+              {activeTab === "settings" && "Settings"}
+            </h1>
             <p className="cg-subtitle">
               AWS Account 656111643306 · ap-south-1 ·{" "}
               <span className={`cg-badge ${apiStatus}`}>
@@ -106,79 +110,125 @@ useEffect(() => {
           </div>
         </div>
 
-        {/* ── STAT CARDS ── */}
-        <div className="cg-cards">
-          {[
-            { label: "30-Day Spend",   value: `$${totalCost}`, sub: "↑ 14% vs last month", color: "#38bdf8" },
-            { label: "Active Alerts",  value: highAlerts,       sub: `${alerts.length} total`, color: "#f87171"  },
-            { label: "AWS Services",   value: services.length,  sub: "being monitored",      color: "#a78bfa"  },
-            { label: "Est. Savings",   value: "$38",            sub: "idle resources",       color: "#34d399"  },
-          ].map((c, i) => (
-            <div className="cg-card" key={i}>
-              <div className="cg-card-label">{c.label}</div>
-              <div className="cg-card-value" style={{ color: c.color }}>{c.value}</div>
-              <div className="cg-card-sub">{c.sub}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* ── COST CHART ── */}
-        <div className="cg-panel">
-          <div className="cg-panel-title">Daily Cost Trend (Last 11 Days)</div>
-          <ResponsiveContainer width="100%" height={240}>
-            <LineChart data={costData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-              <XAxis dataKey="date" tick={{ fill: "#64748b", fontSize: 12 }} />
-              <YAxis tick={{ fill: "#64748b", fontSize: 12 }} tickFormatter={v => `$${v}`} />
-              <Tooltip
-                contentStyle={{ background: "#0f172a", border: "1px solid #1e293b", borderRadius: 8 }}
-                labelStyle={{ color: "#e2e8f0" }}
-                formatter={v => [`$${v}`, ""]}
-              />
-              <Legend />
-              <Line type="monotone" dataKey="cost"     stroke="#38bdf8" strokeWidth={2} dot={false} name="Actual"   />
-              <Line type="monotone" dataKey="forecast" stroke="#a78bfa" strokeWidth={2} dot={false} name="Forecast" strokeDasharray="5 5" />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* ── BOTTOM ROW ── */}
-        <div className="cg-bottom">
-          {/* Service breakdown */}
-          <div className="cg-panel cg-panel-half">
-            <div className="cg-panel-title">Service Breakdown</div>
-            <table className="cg-table">
-              <thead>
-                <tr><th>Service</th><th>30d Cost</th><th>Change</th></tr>
-              </thead>
-              <tbody>
-                {services.map((s, i) => (
-                  <tr key={i}>
-                    <td>{s.service}</td>
-                    <td>${s.cost.toFixed(2)}</td>
-                    <td style={{ color: s.change.startsWith("+") ? "#f87171" : "#34d399" }}>{s.change}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Alerts */}
-          <div className="cg-panel cg-panel-half">
-            <div className="cg-panel-title">Active Alerts</div>
-            <div className="cg-alerts">
-              {alerts.map(a => (
-                <div className="cg-alert" key={a.id}>
-                  <div className={`cg-severity ${a.severity.toLowerCase()}`}>{a.severity}</div>
-                  <div className="cg-alert-body">
-                    <div className="cg-alert-msg">{a.message}</div>
-                    <div className="cg-alert-time">{a.time}</div>
+        {/* ── SECURITY TAB ── */}
+        {activeTab === "security" && (
+          securityData ? (
+            <div className="cg-panel">
+              <div className="cg-panel-title">Security Score</div>
+              <div style={{ fontSize: "3rem", fontWeight: 700, color: securityData.score < 50 ? "#f87171" : "#34d399", marginBottom: "0.5rem" }}>
+                {securityData.score}/100
+              </div>
+              <div style={{ color: "#64748b", marginBottom: "1.5rem" }}>
+                {securityData.passed} of {securityData.total} checks passed
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                {securityData.checks.map(check => (
+                  <div key={check.id} style={{
+                    display: "flex", gap: "1rem", alignItems: "flex-start",
+                    padding: "0.75rem", borderRadius: "8px", background: "#0a1628",
+                    border: `1px solid ${check.status === "PASS" ? "#166534" : "#7f1d1d"}`
+                  }}>
+                    <div style={{ fontSize: "1.2rem" }}>{check.status === "PASS" ? "✅" : "❌"}</div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", marginBottom: "4px" }}>
+                        <span style={{ fontWeight: 600, color: "#e2e8f0" }}>{check.title}</span>
+                        <span style={{
+                          padding: "1px 6px", borderRadius: "4px", fontSize: "0.7rem", fontWeight: 700,
+                          background: check.severity === "CRITICAL" ? "#450a0a" : check.severity === "HIGH" ? "#431407" : "#2d1f00",
+                          color: check.severity === "CRITICAL" ? "#f87171" : check.severity === "HIGH" ? "#fb923c" : "#fbbf24"
+                        }}>{check.severity}</span>
+                      </div>
+                      <div style={{ fontSize: "0.83rem", color: "#94a3b8" }}>{check.message}</div>
+                      {check.status === "FAIL" && (
+                        <div style={{ fontSize: "0.78rem", color: "#38bdf8", marginTop: "4px" }}>
+                          💡 {check.recommendation}
+                        </div>
+                      )}
+                    </div>
                   </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="cg-panel" style={{ textAlign: "center", padding: "3rem", color: "#64748b" }}>
+              ⏳ Loading security data...
+            </div>
+          )
+        )}
+
+        {/* ── OVERVIEW TAB ── */}
+        {activeTab !== "security" && (
+          <>
+            <div className="cg-cards">
+              {[
+                { label: "30-Day Spend",  value: `$${totalCost}`, sub: "↑ 14% vs last month", color: "#38bdf8" },
+                { label: "Active Alerts", value: highAlerts,       sub: `${alerts.length} total`, color: "#f87171" },
+                { label: "AWS Services",  value: services.length,  sub: "being monitored",      color: "#a78bfa" },
+                { label: "Est. Savings",  value: "$38",            sub: "idle resources",       color: "#34d399" },
+              ].map((c, i) => (
+                <div className="cg-card" key={i}>
+                  <div className="cg-card-label">{c.label}</div>
+                  <div className="cg-card-value" style={{ color: c.color }}>{c.value}</div>
+                  <div className="cg-card-sub">{c.sub}</div>
                 </div>
               ))}
             </div>
-          </div>
-        </div>
+
+            <div className="cg-panel">
+              <div className="cg-panel-title">Daily Cost Trend (Last 11 Days)</div>
+              <ResponsiveContainer width="100%" height={240}>
+                <LineChart data={costData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                  <XAxis dataKey="date" tick={{ fill: "#64748b", fontSize: 12 }} />
+                  <YAxis tick={{ fill: "#64748b", fontSize: 12 }} tickFormatter={v => `$${v}`} />
+                  <Tooltip
+                    contentStyle={{ background: "#0f172a", border: "1px solid #1e293b", borderRadius: 8 }}
+                    labelStyle={{ color: "#e2e8f0" }}
+                    formatter={v => [`$${v}`, ""]}
+                  />
+                  <Legend />
+                  <Line type="monotone" dataKey="cost"     stroke="#38bdf8" strokeWidth={2} dot={false} name="Actual" />
+                  <Line type="monotone" dataKey="forecast" stroke="#a78bfa" strokeWidth={2} dot={false} name="Forecast" strokeDasharray="5 5" />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="cg-bottom">
+              <div className="cg-panel cg-panel-half">
+                <div className="cg-panel-title">Service Breakdown</div>
+                <table className="cg-table">
+                  <thead>
+                    <tr><th>Service</th><th>30d Cost</th><th>Change</th></tr>
+                  </thead>
+                  <tbody>
+                    {services.map((s, i) => (
+                      <tr key={i}>
+                        <td>{s.service}</td>
+                        <td>${s.cost.toFixed(2)}</td>
+                        <td style={{ color: s.change.startsWith("+") ? "#f87171" : "#34d399" }}>{s.change}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="cg-panel cg-panel-half">
+                <div className="cg-panel-title">Active Alerts</div>
+                <div className="cg-alerts">
+                  {alerts.map(a => (
+                    <div className="cg-alert" key={a.id}>
+                      <div className={`cg-severity ${a.severity.toLowerCase()}`}>{a.severity}</div>
+                      <div className="cg-alert-body">
+                        <div className="cg-alert-msg">{a.message}</div>
+                        <div className="cg-alert-time">{a.time}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </>
+        )}
       </main>
     </div>
   );
