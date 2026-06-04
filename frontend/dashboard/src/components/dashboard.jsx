@@ -4,7 +4,7 @@ import {
   Tooltip, ResponsiveContainer, Legend
 } from "recharts";
 
-const API_URL = "/api";
+const API_URL = import.meta.env.VITE_API_URL;
 
 const mockCostData = [
   { date: "May 25", cost: 2.4, forecast: 2.8 },

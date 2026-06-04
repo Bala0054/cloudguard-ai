@@ -1,3 +1,7 @@
+import * as s3 from 'aws-cdk-lib/aws-s3';
+import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
+import * as origins from 'aws-cdk-lib/aws-cloudfront-origins';
+import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment';
 import * as cdk from 'aws-cdk-lib';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
@@ -79,6 +83,41 @@ export class InfrastructureStack extends cdk.Stack {
     });
     const security = api.root.addResource('security');
     security.addMethod('GET', new apigateway.LambdaIntegration(securityScanner));
+    // S3 + CloudFront for frontend
+const siteBucket = new s3.Bucket(this, 'SiteBucket', {
+  removalPolicy: cdk.RemovalPolicy.DESTROY,
+  autoDeleteObjects: true,
+});
+
+const apiOrigin = new origins.HttpOrigin(
+  `${api.restApiId}.execute-api.ap-south-1.amazonaws.com`,
+  { originPath: '/prod' }
+);
+
+const distribution = new cloudfront.Distribution(this, 'SiteDistribution', {
+  defaultBehavior: {
+    origin: origins.S3BucketOrigin.withOriginAccessControl(siteBucket),
+  },
+  additionalBehaviors: {
+    '/api/*': {
+      origin: apiOrigin,
+      allowedMethods: cloudfront.AllowedMethods.ALLOW_ALL,
+      cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
+      originRequestPolicy: cloudfront.OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
+    },
+  },
+  defaultRootObject: 'index.html',
+  errorResponses: [{ httpStatus: 404, responseHttpStatus: 200, responsePagePath: '/index.html' }],
+});
+
+new s3deploy.BucketDeployment(this, 'DeploySite', {
+  sources: [s3deploy.Source.asset('../frontend/dashboard/dist')],
+  destinationBucket: siteBucket,
+  distribution,
+  distributionPaths: ['/*'],
+});
+
+new cdk.CfnOutput(this, 'CloudFrontURL', { value: `https://${distribution.distributionDomainName}` });
 
     new cdk.CfnOutput(this, 'TableName', { value: cloudguardTable.tableName });
     new cdk.CfnOutput(this, 'UserPoolId', { value: userPool.userPoolId });
