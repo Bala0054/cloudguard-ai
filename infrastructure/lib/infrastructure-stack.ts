@@ -83,42 +83,64 @@ export class InfrastructureStack extends cdk.Stack {
     });
     const security = api.root.addResource('security');
     security.addMethod('GET', new apigateway.LambdaIntegration(securityScanner));
+
+    // ── Phase 8: Accounts Handler Lambda ──────────────────────────────────────
+    const accountsHandler = new lambda.Function(this, 'AccountsHandler', {
+      runtime: lambda.Runtime.NODEJS_18_X,
+      handler: 'index.handler',
+      code: lambda.Code.fromAsset('../backend/accounts-handler'),
+      timeout: cdk.Duration.seconds(30),
+    });
+
+    // Allow this Lambda to call STS AssumeRole on any role
+    accountsHandler.addToRolePolicy(new iam.PolicyStatement({
+      actions: ['sts:AssumeRole'],
+      resources: ['*'],
+    }));
+
+    // Allow this Lambda to read/write DynamoDB
+    cloudguardTable.grantReadWriteData(accountsHandler);
+
+    // POST /accounts route
+    const accounts = api.root.addResource('accounts');
+    accounts.addMethod('POST', new apigateway.LambdaIntegration(accountsHandler));
+    // ─────────────────────────────────────────────────────────────────────────
+
     // S3 + CloudFront for frontend
-const siteBucket = new s3.Bucket(this, 'SiteBucket', {
-  removalPolicy: cdk.RemovalPolicy.DESTROY,
-  autoDeleteObjects: true,
-});
+    const siteBucket = new s3.Bucket(this, 'SiteBucket', {
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      autoDeleteObjects: true,
+    });
 
-const apiOrigin = new origins.HttpOrigin(
-  `${api.restApiId}.execute-api.ap-south-1.amazonaws.com`,
-  { originPath: '/prod' }
-);
+    const apiOrigin = new origins.HttpOrigin(
+      `${api.restApiId}.execute-api.ap-south-1.amazonaws.com`,
+      { originPath: '/prod' }
+    );
 
-const distribution = new cloudfront.Distribution(this, 'SiteDistribution', {
-  defaultBehavior: {
-    origin: origins.S3BucketOrigin.withOriginAccessControl(siteBucket),
-  },
-  additionalBehaviors: {
-    '/api/*': {
-      origin: apiOrigin,
-      allowedMethods: cloudfront.AllowedMethods.ALLOW_ALL,
-      cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
-      originRequestPolicy: cloudfront.OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
-    },
-  },
-  defaultRootObject: 'index.html',
-  errorResponses: [{ httpStatus: 404, responseHttpStatus: 200, responsePagePath: '/index.html' }],
-});
+    const distribution = new cloudfront.Distribution(this, 'SiteDistribution', {
+      defaultBehavior: {
+        origin: origins.S3BucketOrigin.withOriginAccessControl(siteBucket),
+      },
+      additionalBehaviors: {
+        '/api/*': {
+          origin: apiOrigin,
+          allowedMethods: cloudfront.AllowedMethods.ALLOW_ALL,
+          cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
+          originRequestPolicy: cloudfront.OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
+        },
+      },
+      defaultRootObject: 'index.html',
+      errorResponses: [{ httpStatus: 404, responseHttpStatus: 200, responsePagePath: '/index.html' }],
+    });
 
-new s3deploy.BucketDeployment(this, 'DeploySite', {
-  sources: [s3deploy.Source.asset('../frontend/dashboard/dist')],
-  destinationBucket: siteBucket,
-  distribution,
-  distributionPaths: ['/*'],
-});
+    new s3deploy.BucketDeployment(this, 'DeploySite', {
+      sources: [s3deploy.Source.asset('../frontend/dashboard/dist')],
+      destinationBucket: siteBucket,
+      distribution,
+      distributionPaths: ['/*'],
+    });
 
-new cdk.CfnOutput(this, 'CloudFrontURL', { value: `https://${distribution.distributionDomainName}` });
-
+    new cdk.CfnOutput(this, 'CloudFrontURL', { value: `https://${distribution.distributionDomainName}` });
     new cdk.CfnOutput(this, 'TableName', { value: cloudguardTable.tableName });
     new cdk.CfnOutput(this, 'UserPoolId', { value: userPool.userPoolId });
     new cdk.CfnOutput(this, 'UserPoolClientId', { value: userPoolClient.userPoolClientId });
