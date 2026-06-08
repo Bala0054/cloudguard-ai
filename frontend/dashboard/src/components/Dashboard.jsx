@@ -113,7 +113,7 @@ export default function Dashboard({ user, signOut }) {
       .catch(err => console.error("Security fetch failed:", err));
 
     // Phase 10: Real Cost Explorer data
-    fetch(${API_URL}/costs)
+    fetch(`${API_URL}/costs`)
       .then(r => r.json())
       .then(data => {
         if (data.data && data.data.length > 0) {
