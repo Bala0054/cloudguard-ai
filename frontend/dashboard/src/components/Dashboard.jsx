@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+ï»¿import { useState, useEffect } from "react";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Legend
@@ -37,7 +37,7 @@ const mockAlerts = [
 
 const CF_TEMPLATE = {
   AWSTemplateFormatVersion: "2010-09-09",
-  Description: "CloudGuard AI GÇö Read-only monitoring role",
+  Description: "CloudGuard AI Î“Ã‡Ã¶ Read-only monitoring role",
   Resources: {
     CloudGuardRole: {
       Type: "AWS::IAM::Role",
@@ -92,9 +92,6 @@ export default function Dashboard({ user, signOut }) {
   const [roleArn, setRoleArn]           = useState("");
   const [connectStatus, setConnectStatus] = useState(null);
   const [connecting, setConnecting]     = useState(false);
-  const [realCostData, setRealCostData]   = useState(null);
-  const [realServices, setRealServices]   = useState(null);
-  const [costLoading, setCostLoading]     = useState(false);
 
   useEffect(() => {
     fetch(`${API_URL}/anomalies`)
@@ -114,8 +111,9 @@ export default function Dashboard({ user, signOut }) {
       .then(r => r.json())
       .then(data => setSecurityData(data))
       .catch(err => console.error("Security fetch failed:", err));
+
     // Phase 10: Real Cost Explorer data
-    fetch($(${API_URL}/costs))
+    fetch(${API_URL}/costs)
       .then(r => r.json())
       .then(data => {
         if (data.data && data.data.length > 0) {
@@ -169,20 +167,18 @@ export default function Dashboard({ user, signOut }) {
       });
       const data = await res.json();
       if (data.success) {
-        setConnectStatus({ ok: true, msg: "G£à AWS account connected! Refreshing data..." });
+        setConnectStatus({ ok: true, msg: "Î“Â£Ã  AWS account connected! Refreshing data..." });
         setTimeout(() => setActiveTab("overview"), 2000);
       } else {
         setConnectStatus({ ok: false, msg: data.error || "Connection failed" });
       }
     } catch {
-      setConnectStatus({ ok: false, msg: "Network error GÇö check if dev server is running" });
+      setConnectStatus({ ok: false, msg: "Network error Î“Ã‡Ã¶ check if dev server is running" });
     }
     setConnecting(false);
   };
 
-  const displayCostData = realCostData || costData;
-  const displayServices  = realServices || services;
-  const totalCost        = displayServices.reduce((s, r) => s + r.cost, 0).toFixed(2);
+  const totalCost  = services.reduce((s, r) => s + r.cost, 0).toFixed(2);
   const highAlerts = alerts.filter(a => a.severity === "HIGH").length;
 
   const panelStyle = { background: "#0f172a", borderRadius: "12px", border: "1px solid #1e293b", padding: "1.5rem", marginBottom: "1.5rem" };
@@ -194,14 +190,14 @@ export default function Dashboard({ user, signOut }) {
   return (
     <div className="cg-shell">
       <aside className="cg-sidebar">
-        <div className="cg-logo">=ƒ¢ín+Å CloudGuard</div>
+        <div className="cg-logo">â‰¡Æ’Â¢Ã­âˆ©â••Ã… CloudGuard</div>
         <nav className="cg-nav">
           {[
-            { id: "overview",  label: "Overview",  icon: "=ƒôè" },
-            { id: "costs",     label: "Costs",     icon: "=ƒÆ¦" },
-            { id: "security",  label: "Security",  icon: "=ƒöÆ" },
-            { id: "connect",   label: "Connect AWS", icon: "=ƒöù" },
-            { id: "settings",  label: "Settings",  icon: "GÜÖn+Å" },
+            { id: "overview",  label: "Overview",  icon: "â‰¡Æ’Ã´Ã¨" },
+            { id: "costs",     label: "Costs",     icon: "â‰¡Æ’Ã†â–‘" },
+            { id: "security",  label: "Security",  icon: "â‰¡Æ’Ã¶Ã†" },
+            { id: "connect",   label: "Connect AWS", icon: "â‰¡Æ’Ã¶Ã¹" },
+            { id: "settings",  label: "Settings",  icon: "Î“ÃœÃ–âˆ©â••Ã…" },
           ].map(item => (
             <button
               key={item.id}
@@ -229,20 +225,20 @@ export default function Dashboard({ user, signOut }) {
               {activeTab === "settings"  && "Settings"}
             </h1>
             <p className="cg-subtitle">
-              AWS Account 656111643306 -+ ap-south-1 -+{" "}
+              AWS Account 656111643306 â”¬â•– ap-south-1 â”¬â•–{" "}
               <span className={`cg-badge ${apiStatus}`}>
-                {apiStatus === "live" ? "=ƒƒó Live" : "=ƒƒí Demo"}
+                {apiStatus === "live" ? "â‰¡Æ’Æ’Ã³ Live" : "â‰¡Æ’Æ’Ã­ Demo"}
               </span>
             </p>
           </div>
         </div>
 
-        {/* GöÇGöÇ OVERVIEW TAB GöÇGöÇ */}
+        {/* Î“Ã¶Ã‡Î“Ã¶Ã‡ OVERVIEW TAB Î“Ã¶Ã‡Î“Ã¶Ã‡ */}
         {activeTab === "overview" && (
           <>
             <div className="cg-cards">
               {[
-                { label: "30-Day Spend",  value: `$${totalCost}`, sub: "Gåæ 14% vs last month", color: "#38bdf8" },
+                { label: "30-Day Spend",  value: `$${totalCost}`, sub: "Î“Ã¥Ã¦ 14% vs last month", color: "#38bdf8" },
                 { label: "Active Alerts", value: highAlerts,       sub: `${alerts.length} total`, color: "#f87171" },
                 { label: "AWS Services",  value: services.length,  sub: "being monitored",      color: "#a78bfa" },
                 { label: "Est. Savings",  value: "$38",            sub: "idle resources",       color: "#34d399" },
@@ -302,7 +298,7 @@ export default function Dashboard({ user, signOut }) {
           </>
         )}
 
-        {/* GöÇGöÇ COSTS TAB GöÇGöÇ */}
+        {/* Î“Ã¶Ã‡Î“Ã¶Ã‡ COSTS TAB Î“Ã¶Ã‡Î“Ã¶Ã‡ */}
         {activeTab === "costs" && (
           <>
             <div className="cg-bottom" style={{ marginBottom: "1rem" }}>
@@ -325,7 +321,7 @@ export default function Dashboard({ user, signOut }) {
                 <div className="cg-panel-title">Cost Summary</div>
                 {[
                   { label: "Total 30d Spend",   value: `$${totalCost}` },
-                  { label: "Highest Service",   value: "EC2 GÇö $14.20"  },
+                  { label: "Highest Service",   value: "EC2 Î“Ã‡Ã¶ $14.20"  },
                   { label: "Estimated Savings", value: "$38.00"         },
                   { label: "Forecast (30d)",    value: "$28.50"         },
                 ].map((r, i) => (
@@ -353,7 +349,7 @@ export default function Dashboard({ user, signOut }) {
           </>
         )}
 
-        {/* GöÇGöÇ SECURITY TAB GöÇGöÇ */}
+        {/* Î“Ã¶Ã‡Î“Ã¶Ã‡ SECURITY TAB Î“Ã¶Ã‡Î“Ã¶Ã‡ */}
         {activeTab === "security" && (
           securityData ? (
             <div className="cg-panel">
@@ -365,29 +361,29 @@ export default function Dashboard({ user, signOut }) {
               <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
                 {securityData.checks.map(check => (
                   <div key={check.id} style={{ display: "flex", gap: "1rem", alignItems: "flex-start", padding: "0.75rem", borderRadius: "8px", background: "#0a1628", border: `1px solid ${check.status === "PASS" ? "#166534" : "#7f1d1d"}` }}>
-                    <div style={{ fontSize: "1.2rem" }}>{check.status === "PASS" ? "G£à" : "G¥î"}</div>
+                    <div style={{ fontSize: "1.2rem" }}>{check.status === "PASS" ? "Î“Â£Ã " : "Î“Â¥Ã®"}</div>
                     <div style={{ flex: 1 }}>
                       <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", marginBottom: "4px" }}>
                         <span style={{ fontWeight: 600, color: "#e2e8f0" }}>{check.title}</span>
                         <span style={{ padding: "1px 6px", borderRadius: "4px", fontSize: "0.7rem", fontWeight: 700, background: check.severity === "CRITICAL" ? "#450a0a" : check.severity === "HIGH" ? "#431407" : "#2d1f00", color: check.severity === "CRITICAL" ? "#f87171" : check.severity === "HIGH" ? "#fb923c" : "#fbbf24" }}>{check.severity}</span>
                       </div>
                       <div style={{ fontSize: "0.83rem", color: "#94a3b8" }}>{check.message}</div>
-                      {check.status === "FAIL" && <div style={{ fontSize: "0.78rem", color: "#38bdf8", marginTop: "4px" }}>=ƒÆí {check.recommendation}</div>}
+                      {check.status === "FAIL" && <div style={{ fontSize: "0.78rem", color: "#38bdf8", marginTop: "4px" }}>â‰¡Æ’Ã†Ã­ {check.recommendation}</div>}
                     </div>
                   </div>
                 ))}
               </div>
             </div>
           ) : (
-            <div className="cg-panel" style={{ textAlign: "center", padding: "3rem", color: "#64748b" }}>GÅ¦ Loading security data...</div>
+            <div className="cg-panel" style={{ textAlign: "center", padding: "3rem", color: "#64748b" }}>Î“Ã…â”‚ Loading security data...</div>
           )
         )}
 
-        {/* GöÇGöÇ CONNECT AWS TAB GöÇGöÇ */}
+        {/* Î“Ã¶Ã‡Î“Ã¶Ã‡ CONNECT AWS TAB Î“Ã¶Ã‡Î“Ã¶Ã‡ */}
         {activeTab === "connect" && (
           <div style={panelStyle}>
             <p style={{ color: "#94a3b8", marginBottom: "2rem", lineHeight: 1.6 }}>
-              Connect any AWS account to CloudGuard in 3 steps. We only request <strong style={{ color: "#38bdf8" }}>read-only</strong> permissions GÇö CloudGuard never modifies your infrastructure.
+              Connect any AWS account to CloudGuard in 3 steps. We only request <strong style={{ color: "#38bdf8" }}>read-only</strong> permissions Î“Ã‡Ã¶ CloudGuard never modifies your infrastructure.
             </p>
 
             {/* Step 1 */}
@@ -397,7 +393,7 @@ export default function Dashboard({ user, signOut }) {
               <p style={{ color: "#94a3b8", fontSize: "0.875rem", marginBottom: "1rem", lineHeight: 1.6 }}>
                 This template creates a secure IAM Role in your AWS account that allows CloudGuard to read your cost and security data.
               </p>
-              <button onClick={downloadTemplate} style={btnSecond}>G¼çn+Å Download cloudguard-role.json</button>
+              <button onClick={downloadTemplate} style={btnSecond}>Î“Â¼Ã§âˆ©â••Ã… Download cloudguard-role.json</button>
             </div>
 
             {/* Step 2 */}
@@ -405,10 +401,10 @@ export default function Dashboard({ user, signOut }) {
               <div style={stepBadge}>Step 2</div>
               <div style={{ fontWeight: 700, color: "#e2e8f0", fontSize: "1rem", marginBottom: "0.5rem" }}>Run It In Your AWS Account</div>
               <ol style={{ color: "#94a3b8", fontSize: "0.875rem", lineHeight: 2, paddingLeft: "1.25rem", margin: 0 }}>
-                <li>Go to <strong style={{ color: "#38bdf8" }}>AWS Console GåÆ CloudFormation GåÆ Create Stack</strong></li>
+                <li>Go to <strong style={{ color: "#38bdf8" }}>AWS Console Î“Ã¥Ã† CloudFormation Î“Ã¥Ã† Create Stack</strong></li>
                 <li>Choose <strong style={{ color: "#38bdf8" }}>Upload a template file</strong></li>
                 <li>Upload the <code style={{ background: "#1e293b", padding: "1px 6px", borderRadius: "4px" }}>cloudguard-role.json</code> file</li>
-                <li>Click Next GåÆ Next GåÆ Create Stack</li>
+                <li>Click Next Î“Ã¥Ã† Next Î“Ã¥Ã† Create Stack</li>
                 <li>Wait ~1 minute for it to complete</li>
                 <li>Go to the <strong style={{ color: "#38bdf8" }}>Outputs</strong> tab and copy the <code style={{ background: "#1e293b", padding: "1px 6px", borderRadius: "4px" }}>RoleArn</code> value</li>
               </ol>
@@ -425,7 +421,7 @@ export default function Dashboard({ user, signOut }) {
                 onChange={e => setRoleArn(e.target.value)}
               />
               <button onClick={connectAccount} disabled={connecting} style={{ ...btnPrimary, opacity: connecting ? 0.6 : 1 }}>
-                {connecting ? "GÅ¦ Connecting..." : "=ƒöù Connect AWS Account"}
+                {connecting ? "Î“Ã…â”‚ Connecting..." : "â‰¡Æ’Ã¶Ã¹ Connect AWS Account"}
               </button>
               {connectStatus && (
                 <div style={{ marginTop: "1rem", padding: "0.75rem 1rem", borderRadius: "8px", background: connectStatus.ok ? "#14532d" : "#450a0a", color: connectStatus.ok ? "#86efac" : "#fca5a5", fontSize: "0.875rem" }}>
@@ -436,15 +432,15 @@ export default function Dashboard({ user, signOut }) {
 
             {/* Info box */}
             <div style={{ marginTop: "1.5rem", padding: "1rem", background: "#0c1a2e", borderRadius: "8px", border: "1px solid #1e3a5f" }}>
-              <div style={{ color: "#38bdf8", fontWeight: 600, marginBottom: "0.5rem" }}>=ƒöÉ Security Note</div>
+              <div style={{ color: "#38bdf8", fontWeight: 600, marginBottom: "0.5rem" }}>â‰¡Æ’Ã¶Ã‰ Security Note</div>
               <div style={{ color: "#64748b", fontSize: "0.8rem", lineHeight: 1.6 }}>
-                CloudGuard uses AWS STS AssumeRole GÇö we never store your AWS access keys. The IAM role grants read-only access only to billing and security APIs. You can delete the CloudFormation stack at any time to immediately revoke all access.
+                CloudGuard uses AWS STS AssumeRole Î“Ã‡Ã¶ we never store your AWS access keys. The IAM role grants read-only access only to billing and security APIs. You can delete the CloudFormation stack at any time to immediately revoke all access.
               </div>
             </div>
           </div>
         )}
 
-        {/* GöÇGöÇ SETTINGS TAB GöÇGöÇ */}
+        {/* Î“Ã¶Ã‡Î“Ã¶Ã‡ SETTINGS TAB Î“Ã¶Ã‡Î“Ã¶Ã‡ */}
         {activeTab === "settings" && (
           <div className="cg-panel">
             <div className="cg-panel-title">Settings</div>
