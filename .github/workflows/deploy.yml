@@ -1,16 +1,14 @@
 name: Deploy CloudGuard AI
-
 on:
   push:
     branches: [main]
-
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   deploy:
     name: Build & Deploy to AWS
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -21,7 +19,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
       - name: Setup Node.js 20
         uses: actions/setup-node@v4
         with:
@@ -30,26 +27,25 @@ jobs:
           cache-dependency-path: |
             frontend/dashboard/package-lock.json
             infrastructure/package-lock.json
-
       - name: Verify AWS credentials
         run: aws sts get-caller-identity
-
       - name: Install frontend dependencies
         working-directory: frontend/dashboard
         run: npm ci
-
       - name: Build React frontend
         working-directory: frontend/dashboard
         run: npm run build
-
       - name: Install CDK dependencies
         working-directory: infrastructure
         run: npm ci
-
       - name: Build CDK TypeScript
         working-directory: infrastructure
         run: npm run build
-
       - name: Deploy to AWS
         working-directory: infrastructure
-        run: npx cdk deploy --require-approval never
+        run: |
+          for i in 1 2 3; do
+            npx cdk deploy --require-approval never && break
+            echo "Attempt $i failed, retrying in 15s..."
+            sleep 15
+          done
