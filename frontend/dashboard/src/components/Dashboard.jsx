@@ -193,11 +193,11 @@ export default function Dashboard({ user, signOut }) {
         <div className="cg-logo">≡ƒ¢í∩╕Å CloudGuard</div>
         <nav className="cg-nav">
           {[
-            { id: "overview",  label: "Overview",  icon: "≡ƒôè" },
-            { id: "costs",     label: "Costs",     icon: "≡ƒÆ░" },
-            { id: "security",  label: "Security",  icon: "≡ƒöÆ" },
-            { id: "connect",   label: "Connect AWS", icon: "≡ƒöù" },
-            { id: "settings",  label: "Settings",  icon: "ΓÜÖ∩╕Å" },
+            { id: "overview",  label: "Overview",  icon: "" },
+            { id: "costs",     label: "Costs",     icon: "" },
+            { id: "security",  label: "Security",  icon: "" },
+            { id: "connect",   label: "Connect AWS", icon: "" },
+            { id: "settings",  label: "Settings",  icon: "" },
           ].map(item => (
             <button
               key={item.id}
@@ -253,7 +253,7 @@ export default function Dashboard({ user, signOut }) {
             <div className="cg-panel">
               <div className="cg-panel-title">Daily Cost Trend (Last 11 Days)</div>
               <ResponsiveContainer width="100%" height={240}>
-                <LineChart data={costData}>
+                <LineChart data={displayCostData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
                   <XAxis dataKey="date" tick={{ fill: "#64748b", fontSize: 12 }} />
                   <YAxis tick={{ fill: "#64748b", fontSize: 12 }} tickFormatter={v => `$${v}`} />
@@ -335,7 +335,7 @@ export default function Dashboard({ user, signOut }) {
             <div className="cg-panel">
               <div className="cg-panel-title">Daily Cost Trend (Last 11 Days)</div>
               <ResponsiveContainer width="100%" height={240}>
-                <LineChart data={costData}>
+                <LineChart data={displayCostData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
                   <XAxis dataKey="date" tick={{ fill: "#64748b", fontSize: 12 }} />
                   <YAxis tick={{ fill: "#64748b", fontSize: 12 }} tickFormatter={v => `$${v}`} />
