@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import {
-  LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Legend
 } from "recharts";
 
@@ -37,7 +37,7 @@ const mockAlerts = [
 
 const CF_TEMPLATE = {
   AWSTemplateFormatVersion: "2010-09-09",
-  Description: "CloudGuard AI - Read-only monitoring role",
+  Description: "CloudGuard AI GÇö Read-only monitoring role",
   Resources: {
     CloudGuardRole: {
       Type: "AWS::IAM::Role",
@@ -83,19 +83,18 @@ const CF_TEMPLATE = {
 };
 
 export default function Dashboard({ user, signOut }) {
-  const [activeTab, setActiveTab]         = useState("overview");
-  const [apiStatus, setApiStatus]         = useState("checking");
-  const [costData, setCostData]           = useState(mockCostData);
+  const [activeTab, setActiveTab]       = useState("overview");
+  const [apiStatus, setApiStatus]       = useState("checking");
+  const [costData]                      = useState(mockCostData);
+  const [services]                      = useState(mockServices);
+  const [alerts, setAlerts]             = useState(mockAlerts);
+  const [securityData, setSecurityData] = useState(null);
+  const [roleArn, setRoleArn]           = useState("");
+  const [connectStatus, setConnectStatus] = useState(null);
+  const [connecting, setConnecting]     = useState(false);
   const [realCostData, setRealCostData]   = useState(null);
   const [realServices, setRealServices]   = useState(null);
   const [costLoading, setCostLoading]     = useState(false);
-  const [costError, setCostError]         = useState(null);
-  const [services]                        = useState(mockServices);
-  const [alerts, setAlerts]               = useState(mockAlerts);
-  const [securityData, setSecurityData]   = useState(null);
-  const [roleArn, setRoleArn]             = useState("");
-  const [connectStatus, setConnectStatus] = useState(null);
-  const [connecting, setConnecting]       = useState(false);
 
   useEffect(() => {
     fetch(`${API_URL}/anomalies`)
@@ -115,40 +114,32 @@ export default function Dashboard({ user, signOut }) {
       .then(r => r.json())
       .then(data => setSecurityData(data))
       .catch(err => console.error("Security fetch failed:", err));
-
-    // Phase 10: fetch real cost data
-    setCostLoading(true);
-    fetch(`${API_URL}/costs`)
+    // Phase 10: Real Cost Explorer data
+    fetch($(${API_URL}/costs))
       .then(r => r.json())
       .then(data => {
         if (data.data && data.data.length > 0) {
-          // Build chart data from real API
           const chartData = data.data.slice(-14).map(day => ({
             date: day.date.slice(5),
             cost: day.total,
           }));
           setRealCostData(chartData);
-
-          // Build service totals from last 30 days
-          const serviceTotals = {};
+          const totals = {};
           data.data.forEach(day => {
-            Object.entries(day.services).forEach(([name, amount]) => {
-              serviceTotals[name] = (serviceTotals[name] || 0) + amount;
+            Object.entries(day.services).forEach(([k, v]) => {
+              totals[k] = (totals[k] || 0) + v;
             });
           });
-          const serviceList = Object.entries(serviceTotals)
-            .map(([service, cost]) => ({ service, cost: Math.round(cost * 100) / 100 }))
-            .sort((a, b) => b.cost - a.cost)
-            .slice(0, 8);
-          setRealServices(serviceList);
+          setRealServices(
+            Object.entries(totals)
+              .map(([service, cost]) => ({ service, cost: Math.round(cost * 10000) / 10000 }))
+              .sort((a, b) => b.cost - a.cost)
+              .slice(0, 8)
+          );
           setApiStatus("live");
         }
-        setCostLoading(false);
       })
-      .catch(() => {
-        setCostError("Could not load real cost data");
-        setCostLoading(false);
-      });
+      .catch(() => {});
   }, []);
 
   const downloadTemplate = () => {
@@ -171,26 +162,28 @@ export default function Dashboard({ user, signOut }) {
       const res = await fetch(`${API_URL}/accounts`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ roleArn, userEmail: user?.signInDetails?.loginId })
+        body: JSON.stringify({
+          roleArn,
+          userEmail: user?.signInDetails?.loginId
+        })
       });
       const data = await res.json();
       if (data.success) {
-        setConnectStatus({ ok: true, msg: "AWS account connected! Refreshing data..." });
+        setConnectStatus({ ok: true, msg: "G£à AWS account connected! Refreshing data..." });
         setTimeout(() => setActiveTab("overview"), 2000);
       } else {
         setConnectStatus({ ok: false, msg: data.error || "Connection failed" });
       }
     } catch {
-      setConnectStatus({ ok: false, msg: "Network error - check if dev server is running" });
+      setConnectStatus({ ok: false, msg: "Network error GÇö check if dev server is running" });
     }
     setConnecting(false);
   };
 
-  const displayCostData    = realCostData || costData;
-  const displayServices    = realServices || services;
-  const totalCost          = displayServices.reduce((s, r) => s + r.cost, 0).toFixed(2);
-  const highAlerts         = alerts.filter(a => a.severity === "HIGH").length;
-  const topService         = displayServices.length > 0 ? displayServices[0] : null;
+  const displayCostData = realCostData || costData;
+  const displayServices  = realServices || services;
+  const totalCost        = displayServices.reduce((s, r) => s + r.cost, 0).toFixed(2);
+  const highAlerts = alerts.filter(a => a.severity === "HIGH").length;
 
   const panelStyle = { background: "#0f172a", borderRadius: "12px", border: "1px solid #1e293b", padding: "1.5rem", marginBottom: "1.5rem" };
   const stepBadge  = { display: "inline-block", background: "#1e40af", color: "#93c5fd", padding: "2px 10px", borderRadius: "999px", fontSize: "0.75rem", fontWeight: 700, marginBottom: "0.5rem" };
@@ -201,14 +194,14 @@ export default function Dashboard({ user, signOut }) {
   return (
     <div className="cg-shell">
       <aside className="cg-sidebar">
-        <div className="cg-logo">CloudGuard</div>
+        <div className="cg-logo">=ƒ¢ín+Å CloudGuard</div>
         <nav className="cg-nav">
           {[
-            { id: "overview",  label: "Overview",    icon: "O" },
-            { id: "costs",     label: "Costs",       icon: "C" },
-            { id: "security",  label: "Security",    icon: "S" },
-            { id: "connect",   label: "Connect AWS", icon: "+" },
-            { id: "settings",  label: "Settings",    icon: "=" },
+            { id: "overview",  label: "Overview",  icon: "=ƒôè" },
+            { id: "costs",     label: "Costs",     icon: "=ƒÆ¦" },
+            { id: "security",  label: "Security",  icon: "=ƒöÆ" },
+            { id: "connect",   label: "Connect AWS", icon: "=ƒöù" },
+            { id: "settings",  label: "Settings",  icon: "GÜÖn+Å" },
           ].map(item => (
             <button
               key={item.id}
@@ -236,23 +229,23 @@ export default function Dashboard({ user, signOut }) {
               {activeTab === "settings"  && "Settings"}
             </h1>
             <p className="cg-subtitle">
-              AWS Account 656111643306 ap-south-1
+              AWS Account 656111643306 -+ ap-south-1 -+{" "}
               <span className={`cg-badge ${apiStatus}`}>
-                {apiStatus === "live" ? "Live" : "Demo"}
+                {apiStatus === "live" ? "=ƒƒó Live" : "=ƒƒí Demo"}
               </span>
             </p>
           </div>
         </div>
 
-        {/* OVERVIEW TAB */}
+        {/* GöÇGöÇ OVERVIEW TAB GöÇGöÇ */}
         {activeTab === "overview" && (
           <>
             <div className="cg-cards">
               {[
-                { label: "30-Day Spend",  value: `$${totalCost}`,      sub: realCostData ? "Real AWS data" : "Demo data",  color: "#38bdf8" },
-                { label: "Active Alerts", value: highAlerts,            sub: `${alerts.length} total`,                      color: "#f87171" },
-                { label: "AWS Services",  value: displayServices.length, sub: "being monitored",                            color: "#a78bfa" },
-                { label: "Est. Savings",  value: "$38",                 sub: "idle resources",                              color: "#34d399" },
+                { label: "30-Day Spend",  value: `$${totalCost}`, sub: "Gåæ 14% vs last month", color: "#38bdf8" },
+                { label: "Active Alerts", value: highAlerts,       sub: `${alerts.length} total`, color: "#f87171" },
+                { label: "AWS Services",  value: services.length,  sub: "being monitored",      color: "#a78bfa" },
+                { label: "Est. Savings",  value: "$38",            sub: "idle resources",       color: "#34d399" },
               ].map((c, i) => (
                 <div className="cg-card" key={i}>
                   <div className="cg-card-label">{c.label}</div>
@@ -262,19 +255,16 @@ export default function Dashboard({ user, signOut }) {
               ))}
             </div>
             <div className="cg-panel">
-              <div className="cg-panel-title">
-                Daily Cost Trend
-                {realCostData && <span style={{ marginLeft: "0.75rem", fontSize: "0.75rem", background: "#14532d", color: "#86efac", padding: "2px 8px", borderRadius: "999px" }}>Live</span>}
-              </div>
+              <div className="cg-panel-title">Daily Cost Trend (Last 11 Days)</div>
               <ResponsiveContainer width="100%" height={240}>
-                <LineChart data={displayCostData}>
+                <LineChart data={costData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
                   <XAxis dataKey="date" tick={{ fill: "#64748b", fontSize: 12 }} />
                   <YAxis tick={{ fill: "#64748b", fontSize: 12 }} tickFormatter={v => `$${v}`} />
                   <Tooltip contentStyle={{ background: "#0f172a", border: "1px solid #1e293b", borderRadius: 8 }} labelStyle={{ color: "#e2e8f0" }} formatter={v => [`$${v}`, ""]} />
                   <Legend />
                   <Line type="monotone" dataKey="cost"     stroke="#38bdf8" strokeWidth={2} dot={false} name="Actual" />
-                  {!realCostData && <Line type="monotone" dataKey="forecast" stroke="#a78bfa" strokeWidth={2} dot={false} name="Forecast" strokeDasharray="5 5" />}
+                  <Line type="monotone" dataKey="forecast" stroke="#a78bfa" strokeWidth={2} dot={false} name="Forecast" strokeDasharray="5 5" />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -282,12 +272,13 @@ export default function Dashboard({ user, signOut }) {
               <div className="cg-panel cg-panel-half">
                 <div className="cg-panel-title">Service Breakdown</div>
                 <table className="cg-table">
-                  <thead><tr><th>Service</th><th>30d Cost</th></tr></thead>
+                  <thead><tr><th>Service</th><th>30d Cost</th><th>Change</th></tr></thead>
                   <tbody>
-                    {displayServices.map((s, i) => (
+                    {services.map((s, i) => (
                       <tr key={i}>
                         <td>{s.service}</td>
-                        <td>${s.cost.toFixed(4)}</td>
+                        <td>${s.cost.toFixed(2)}</td>
+                        <td style={{ color: s.change.startsWith("+") ? "#f87171" : "#34d399" }}>{s.change}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -311,34 +302,20 @@ export default function Dashboard({ user, signOut }) {
           </>
         )}
 
-        {/* COSTS TAB */}
+        {/* GöÇGöÇ COSTS TAB GöÇGöÇ */}
         {activeTab === "costs" && (
           <>
-            {costLoading && (
-              <div style={{ padding: "2rem", textAlign: "center", color: "#64748b" }}>
-                Loading real AWS cost data...
-              </div>
-            )}
-            {costError && (
-              <div style={{ padding: "1rem", background: "#450a0a", color: "#fca5a5", borderRadius: "8px", marginBottom: "1rem" }}>
-                {costError} - showing demo data
-              </div>
-            )}
-            {realCostData && (
-              <div style={{ padding: "0.75rem 1rem", background: "#14532d", color: "#86efac", borderRadius: "8px", marginBottom: "1rem", fontSize: "0.875rem" }}>
-                Showing real AWS Cost Explorer data for your account
-              </div>
-            )}
             <div className="cg-bottom" style={{ marginBottom: "1rem" }}>
               <div className="cg-panel cg-panel-half">
-                <div className="cg-panel-title">Service Breakdown (30d)</div>
+                <div className="cg-panel-title">Service Breakdown</div>
                 <table className="cg-table">
-                  <thead><tr><th>Service</th><th>Cost</th></tr></thead>
+                  <thead><tr><th>Service</th><th>30d Cost</th><th>Change</th></tr></thead>
                   <tbody>
-                    {displayServices.map((s, i) => (
+                    {services.map((s, i) => (
                       <tr key={i}>
                         <td>{s.service}</td>
-                        <td>${s.cost.toFixed(4)}</td>
+                        <td>${s.cost.toFixed(2)}</td>
+                        <td style={{ color: s.change.startsWith("+") ? "#f87171" : "#34d399" }}>{s.change}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -347,10 +324,10 @@ export default function Dashboard({ user, signOut }) {
               <div className="cg-panel cg-panel-half">
                 <div className="cg-panel-title">Cost Summary</div>
                 {[
-                  { label: "Total 30d Spend",  value: `$${totalCost}` },
-                  { label: "Highest Service",  value: topService ? `${topService.service} - $${topService.cost.toFixed(4)}` : "-" },
-                  { label: "Data Source",      value: realCostData ? "AWS Cost Explorer" : "Demo" },
-                  { label: "Period",           value: "Last 30 days" },
+                  { label: "Total 30d Spend",   value: `$${totalCost}` },
+                  { label: "Highest Service",   value: "EC2 GÇö $14.20"  },
+                  { label: "Estimated Savings", value: "$38.00"         },
+                  { label: "Forecast (30d)",    value: "$28.50"         },
                 ].map((r, i) => (
                   <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "0.6rem 0", borderBottom: "1px solid #1e293b", fontSize: "0.875rem" }}>
                     <span style={{ color: "#64748b" }}>{r.label}</span>
@@ -360,24 +337,23 @@ export default function Dashboard({ user, signOut }) {
               </div>
             </div>
             <div className="cg-panel">
-              <div className="cg-panel-title">
-                Daily Cost Trend (Last 14 Days)
-                {realCostData && <span style={{ marginLeft: "0.75rem", fontSize: "0.75rem", background: "#14532d", color: "#86efac", padding: "2px 8px", borderRadius: "999px" }}>Live</span>}
-              </div>
-              <ResponsiveContainer width="100%" height={260}>
-                <BarChart data={displayCostData}>
+              <div className="cg-panel-title">Daily Cost Trend (Last 11 Days)</div>
+              <ResponsiveContainer width="100%" height={240}>
+                <LineChart data={costData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                  <XAxis dataKey="date" tick={{ fill: "#64748b", fontSize: 11 }} />
+                  <XAxis dataKey="date" tick={{ fill: "#64748b", fontSize: 12 }} />
                   <YAxis tick={{ fill: "#64748b", fontSize: 12 }} tickFormatter={v => `$${v}`} />
-                  <Tooltip contentStyle={{ background: "#0f172a", border: "1px solid #1e293b", borderRadius: 8 }} labelStyle={{ color: "#e2e8f0" }} formatter={v => [`$${v}`, "Cost"]} />
-                  <Bar dataKey="cost" fill="#38bdf8" radius={[4, 4, 0, 0]} name="Daily Cost" />
-                </BarChart>
+                  <Tooltip contentStyle={{ background: "#0f172a", border: "1px solid #1e293b", borderRadius: 8 }} labelStyle={{ color: "#e2e8f0" }} formatter={v => [`$${v}`, ""]} />
+                  <Legend />
+                  <Line type="monotone" dataKey="cost"     stroke="#38bdf8" strokeWidth={2} dot={false} name="Actual" />
+                  <Line type="monotone" dataKey="forecast" stroke="#a78bfa" strokeWidth={2} dot={false} name="Forecast" strokeDasharray="5 5" />
+                </LineChart>
               </ResponsiveContainer>
             </div>
           </>
         )}
 
-        {/* SECURITY TAB */}
+        {/* GöÇGöÇ SECURITY TAB GöÇGöÇ */}
         {activeTab === "security" && (
           securityData ? (
             <div className="cg-panel">
@@ -387,47 +363,58 @@ export default function Dashboard({ user, signOut }) {
               </div>
               <div style={{ color: "#64748b", marginBottom: "1.5rem" }}>{securityData.passed} of {securityData.total} checks passed</div>
               <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-                {securityData.checks && securityData.checks.map(check => (
+                {securityData.checks.map(check => (
                   <div key={check.id} style={{ display: "flex", gap: "1rem", alignItems: "flex-start", padding: "0.75rem", borderRadius: "8px", background: "#0a1628", border: `1px solid ${check.status === "PASS" ? "#166534" : "#7f1d1d"}` }}>
-                    <div style={{ fontSize: "1.2rem" }}>{check.status === "PASS" ? "PASS" : "FAIL"}</div>
-                    <div>
-                      <div style={{ color: "#e2e8f0", fontWeight: 600, fontSize: "0.875rem" }}>{check.name}</div>
-                      <div style={{ color: "#64748b", fontSize: "0.8rem", marginTop: "2px" }}>{check.detail}</div>
+                    <div style={{ fontSize: "1.2rem" }}>{check.status === "PASS" ? "G£à" : "G¥î"}</div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", marginBottom: "4px" }}>
+                        <span style={{ fontWeight: 600, color: "#e2e8f0" }}>{check.title}</span>
+                        <span style={{ padding: "1px 6px", borderRadius: "4px", fontSize: "0.7rem", fontWeight: 700, background: check.severity === "CRITICAL" ? "#450a0a" : check.severity === "HIGH" ? "#431407" : "#2d1f00", color: check.severity === "CRITICAL" ? "#f87171" : check.severity === "HIGH" ? "#fb923c" : "#fbbf24" }}>{check.severity}</span>
+                      </div>
+                      <div style={{ fontSize: "0.83rem", color: "#94a3b8" }}>{check.message}</div>
+                      {check.status === "FAIL" && <div style={{ fontSize: "0.78rem", color: "#38bdf8", marginTop: "4px" }}>=ƒÆí {check.recommendation}</div>}
                     </div>
                   </div>
                 ))}
               </div>
             </div>
           ) : (
-            <div style={{ padding: "2rem", textAlign: "center", color: "#64748b" }}>Loading security data...</div>
+            <div className="cg-panel" style={{ textAlign: "center", padding: "3rem", color: "#64748b" }}>GÅ¦ Loading security data...</div>
           )
         )}
 
-        {/* CONNECT AWS TAB */}
+        {/* GöÇGöÇ CONNECT AWS TAB GöÇGöÇ */}
         {activeTab === "connect" && (
           <div style={panelStyle}>
             <p style={{ color: "#94a3b8", marginBottom: "2rem", lineHeight: 1.6 }}>
-              Connect any AWS account to CloudGuard in 3 steps. We only request <strong style={{ color: "#38bdf8" }}>read-only</strong> permissions.
+              Connect any AWS account to CloudGuard in 3 steps. We only request <strong style={{ color: "#38bdf8" }}>read-only</strong> permissions GÇö CloudGuard never modifies your infrastructure.
             </p>
+
+            {/* Step 1 */}
             <div style={{ marginBottom: "2rem", padding: "1.25rem", background: "#0a1628", borderRadius: "10px", border: "1px solid #1e293b" }}>
               <div style={stepBadge}>Step 1</div>
               <div style={{ fontWeight: 700, color: "#e2e8f0", fontSize: "1rem", marginBottom: "0.5rem" }}>Download the CloudFormation Template</div>
               <p style={{ color: "#94a3b8", fontSize: "0.875rem", marginBottom: "1rem", lineHeight: 1.6 }}>
                 This template creates a secure IAM Role in your AWS account that allows CloudGuard to read your cost and security data.
               </p>
-              <button onClick={downloadTemplate} style={btnSecond}>Download cloudguard-role.json</button>
+              <button onClick={downloadTemplate} style={btnSecond}>G¼çn+Å Download cloudguard-role.json</button>
             </div>
+
+            {/* Step 2 */}
             <div style={{ marginBottom: "2rem", padding: "1.25rem", background: "#0a1628", borderRadius: "10px", border: "1px solid #1e293b" }}>
               <div style={stepBadge}>Step 2</div>
               <div style={{ fontWeight: 700, color: "#e2e8f0", fontSize: "1rem", marginBottom: "0.5rem" }}>Run It In Your AWS Account</div>
               <ol style={{ color: "#94a3b8", fontSize: "0.875rem", lineHeight: 2, paddingLeft: "1.25rem", margin: 0 }}>
-                <li>Go to AWS Console - CloudFormation - Create Stack</li>
-                <li>Choose Upload a template file</li>
-                <li>Upload the cloudguard-role.json file</li>
-                <li>Click Next - Next - Create Stack</li>
-                <li>Go to the Outputs tab and copy the RoleArn value</li>
+                <li>Go to <strong style={{ color: "#38bdf8" }}>AWS Console GåÆ CloudFormation GåÆ Create Stack</strong></li>
+                <li>Choose <strong style={{ color: "#38bdf8" }}>Upload a template file</strong></li>
+                <li>Upload the <code style={{ background: "#1e293b", padding: "1px 6px", borderRadius: "4px" }}>cloudguard-role.json</code> file</li>
+                <li>Click Next GåÆ Next GåÆ Create Stack</li>
+                <li>Wait ~1 minute for it to complete</li>
+                <li>Go to the <strong style={{ color: "#38bdf8" }}>Outputs</strong> tab and copy the <code style={{ background: "#1e293b", padding: "1px 6px", borderRadius: "4px" }}>RoleArn</code> value</li>
               </ol>
             </div>
+
+            {/* Step 3 */}
             <div style={{ padding: "1.25rem", background: "#0a1628", borderRadius: "10px", border: "1px solid #1e293b" }}>
               <div style={stepBadge}>Step 3</div>
               <div style={{ fontWeight: 700, color: "#e2e8f0", fontSize: "1rem", marginBottom: "0.5rem" }}>Paste Your Role ARN</div>
@@ -438,7 +425,7 @@ export default function Dashboard({ user, signOut }) {
                 onChange={e => setRoleArn(e.target.value)}
               />
               <button onClick={connectAccount} disabled={connecting} style={{ ...btnPrimary, opacity: connecting ? 0.6 : 1 }}>
-                {connecting ? "Connecting..." : "Connect AWS Account"}
+                {connecting ? "GÅ¦ Connecting..." : "=ƒöù Connect AWS Account"}
               </button>
               {connectStatus && (
                 <div style={{ marginTop: "1rem", padding: "0.75rem 1rem", borderRadius: "8px", background: connectStatus.ok ? "#14532d" : "#450a0a", color: connectStatus.ok ? "#86efac" : "#fca5a5", fontSize: "0.875rem" }}>
@@ -446,13 +433,38 @@ export default function Dashboard({ user, signOut }) {
                 </div>
               )}
             </div>
+
+            {/* Info box */}
+            <div style={{ marginTop: "1.5rem", padding: "1rem", background: "#0c1a2e", borderRadius: "8px", border: "1px solid #1e3a5f" }}>
+              <div style={{ color: "#38bdf8", fontWeight: 600, marginBottom: "0.5rem" }}>=ƒöÉ Security Note</div>
+              <div style={{ color: "#64748b", fontSize: "0.8rem", lineHeight: 1.6 }}>
+                CloudGuard uses AWS STS AssumeRole GÇö we never store your AWS access keys. The IAM role grants read-only access only to billing and security APIs. You can delete the CloudFormation stack at any time to immediately revoke all access.
+              </div>
+            </div>
           </div>
         )}
 
-        {/* SETTINGS TAB */}
+        {/* GöÇGöÇ SETTINGS TAB GöÇGöÇ */}
         {activeTab === "settings" && (
-          <div style={panelStyle}>
-            <div style={{ color: "#64748b", fontSize: "0.875rem" }}>Settings coming soon.</div>
+          <div className="cg-panel">
+            <div className="cg-panel-title">Settings</div>
+            {[
+              { label: "AWS Account ID",  value: "656111643306" },
+              { label: "Region",          value: "ap-south-1" },
+              { label: "User Pool ID",    value: "ap-south-1_foQ3Jk4cx" },
+              { label: "API Endpoint",    value: "o2nvgd1ydl.execute-api.ap-south-1.amazonaws.com" },
+              { label: "DynamoDB Table",  value: "cloudguard-main" },
+              { label: "App Version",     value: "2.0.0" },
+            ].map((r, i) => (
+              <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.75rem 0", borderBottom: "1px solid #1e293b", fontSize: "0.875rem" }}>
+                <span style={{ color: "#64748b" }}>{r.label}</span>
+                <span style={{ color: "#e2e8f0", fontWeight: 600, fontFamily: "monospace", fontSize: "0.8rem" }}>{r.value}</span>
+              </div>
+            ))}
+            <div style={{ marginTop: "1.5rem", padding: "1rem", background: "#0a1628", borderRadius: "8px", border: "1px solid #1e293b" }}>
+              <div style={{ color: "#38bdf8", fontWeight: 600, marginBottom: "0.5rem" }}>Logged in as</div>
+              <div style={{ color: "#94a3b8", fontSize: "0.875rem" }}>{user?.signInDetails?.loginId}</div>
+            </div>
           </div>
         )}
 
