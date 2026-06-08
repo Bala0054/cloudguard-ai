@@ -1,4 +1,8 @@
-﻿import { useState, useEffect } from "react";
+﻿{ id: "overview",  label: "Overview",  icon: "OV" },
+{ id: "costs",     label: "Costs",     icon: "CS" },
+{ id: "security",  label: "Security",  icon: "SC" },
+{ id: "connect",   label: "Connect AWS", icon: "CN" },
+{ id: "settings",  label: "Settings",  icon: "ST" },import { useState, useEffect } from "react";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Legend
