@@ -92,6 +92,10 @@ export default function Dashboard({ user, signOut }) {
   const [roleArn, setRoleArn]           = useState("");
   const [connectStatus, setConnectStatus] = useState(null);
   const [connecting, setConnecting]     = useState(false);
+  const [realCostData, setRealCostData]   = useState(null);
+  const [realServices, setRealServices]   = useState(null);
+  const displayCostData = realCostData || costData;
+  const displayServices = realServices || services;
 
   useEffect(() => {
     fetch(`${API_URL}/anomalies`)
